@@ -5,7 +5,7 @@ This repository contains recreations of the work performed by Raissi et al. (201
 
 ## Harmonic Oscillator
 The first file is a short proof-of-principle on the simplest physical example: the harmonic oscillator. The governing equation for this system is 
-y'' + y = 0, which has the exact solution y = cos(x). The exact solution is sampled at a number (N ~ 20) of random locations on the domain 0<x<4 pi. The loss function penalizes the deviation of the neural network output form these "observations". Additionally, the loss function contains a regularization term that seeks to enforce the governing equations at a denser grid (N ~ 50). Crucially, the governing equations can be evaluated by using automatic differentiation via Tensorflow's GradientTape() to obtain the required derivative(s) from the neural network. The weights & biases of the neural network are trained using Keras's Adam optimizer.
+u'' + u = 0, which has the exact solution u(x) = cos(x). The exact solution is sampled at a number (N ~ 20) of random locations on the domain 0<x<4 pi. The loss function penalizes the deviation of the neural network output form these "observations". Additionally, the loss function contains a regularization term that seeks to enforce the governing equations at a denser grid (N ~ 50). Crucially, the governing equations can be evaluated by using automatic differentiation via Tensorflow's GradientTape() to obtain the required derivative(s) from the neural network. The weights & biases of the neural network are trained using Keras's Adam optimizer.
 
 
 
