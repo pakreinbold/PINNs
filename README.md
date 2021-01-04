@@ -1,7 +1,7 @@
 # PINNs
 Physics-Informed Neural Networks
 
-This repository contains recreations of the work performed by Raissi et al. (2019). 
+This repository contains recreations of the work performed by Raissi et al. (2019). Certain code snippets from said work are imported directly, or used as starting points for the code here.
 
 ## Harmonic Oscillator
 The first file is a short proof-of-principle on the simplest physical example: the harmonic oscillator. The governing equation for this system is 
