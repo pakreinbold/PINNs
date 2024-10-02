@@ -1,0 +1,10 @@
+# Run: conda env create --file environment.yml
+name: pinns
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - pip
+  - pip:
+    - plotly==5.14
+    - tensorflow==2.15
