@@ -8,9 +8,29 @@ import keras
 
 
 class PINN_ho(keras.Model):
+    """Physics Inspired Neural Network (PINN) for the harmonic oscillator. This model leverages
+    knowledge of the governing equation:
+
+        u_xx + u = 0
+
+    to improve inferences outside of the training domain. The governing equation is evaluated using
+    automatic differentiation via `tf.GradientTape`, and its residual is used as a regularization
+    term in the loss.
+
+    Parameters
+    ----------
+    layers : list[tuple[int, str]]
+        Contains `(units, activation)` for each layer of the underlying sequential neural net.
+    lb : float
+        The lower bound of the domain to evaluate the governing equation residual.
+    ub : float
+        The uppder bound of the domain to evaluate the governing equation residual.
+    alpha : float
+        The weight for the governing equation regularization.
+    """
     def __init__(self, layers: list[tuple[int, str]], ub: float, lb: float, alpha: float = 1.0):
         super().__init__()
-        self.sequential = keras.Sequential([
+        self._sequential = keras.Sequential([
             keras.layers.Dense(units, activation)
             for units, activation in layers
         ])
@@ -18,15 +38,17 @@ class PINN_ho(keras.Model):
         self.ub = ub
         self.x_res = tf.reshape(tf.linspace(lb, ub, 50), shape=(50, 1))
         self.alpha = alpha
-        self.loss_tracker = keras.metrics.Mean(name='loss')
-        self.mse_tracker = keras.metrics.Mean(name='mse')
-        self.eqn_res_tracker = keras.metrics.Mean(name='eqn_res')
+        self._loss_tracker = keras.metrics.Mean(name='loss')
+        self._mse_tracker = keras.metrics.Mean(name='mse')
+        self._eqn_res_tracker = keras.metrics.Mean(name='eqn_res')
 
     def call(self, x, training: bool = False):  # type: ignore
+        """Makes the prediction, with input normalized to [-1, 1]."""
         x = 2.0 * (x - self.lb) / (self.ub - self.lb) + 1.0
-        return self.sequential(x)
+        return self._sequential(x)
 
     def compute_derivatives(self, x):
+        """Evaluate the 0th, 1st, and 2nd derivatives of the neural network."""
         with tf.GradientTape(persistent=True) as t1:
             t1.watch(x)
             with tf.GradientTape(persistent=True) as t2:
@@ -37,9 +59,8 @@ class PINN_ho(keras.Model):
         return u, u_x, u_xx
 
     def compute_loss(self, x, y, y_pred, sample_weight=None):  # type: ignore
-        # Compute residual of governing equation for use in loss function
+        """Computes the loss function, regularized by the governing equation's residual."""
         u, u_x, u_xx = self.compute_derivatives(self.x_res)
-
         eqn_residual = tf.reduce_mean(tf.square(
             u_xx + u
         ))
@@ -50,14 +71,15 @@ class PINN_ho(keras.Model):
             + self.alpha * eqn_residual
         )
 
-        self.loss_tracker.update_state(loss)
-        self.mse_tracker.update_state(mse)
-        self.eqn_res_tracker.update_state(eqn_residual)
+        self._loss_tracker.update_state(loss)
+        self._mse_tracker.update_state(mse)
+        self._eqn_res_tracker.update_state(eqn_residual)
         return loss
 
     @property
     def metrics(self):
-        return [self.loss_tracker, self.mse_tracker, self.eqn_res_tracker]
+        """Used for printing the epoch losses while training."""
+        return [self._loss_tracker, self._mse_tracker, self._eqn_res_tracker]
 
 
 if __name__ == '__main__':
@@ -69,8 +91,8 @@ if __name__ == '__main__':
     # Randomly sample the data
     n_samples = 20
     idx = random.sample(list(range(250)), n_samples)
-    x_train = tf.constant(x[idx], dtype=tf.float32, shape=[n_samples, 1])
-    u_train = tf.constant(u[idx], dtype=tf.float32, shape=[n_samples, 1])
+    x_train = tf.constant(x[idx], dtype=tf.float32, shape=(n_samples, 1))
+    u_train = tf.constant(u[idx], dtype=tf.float32, shape=(n_samples, 1))
 
     # Train model
     epochs = 5000
@@ -101,12 +123,6 @@ if __name__ == '__main__':
     fig.add_trace(
         go.Scatter(x=x, y=u_pred[:, 0], name='Fit')
     )
-    # fig.add_trace(
-    #     go.Scatter(x=x, y=u_x[:, 0], name='u_x')
-    # )
-    # fig.add_trace(
-    #     go.Scatter(x=x, y=u_xx[:, 0], name='u_xx')
-    # )
     fig.add_trace(
         go.Scatter(x=x, y=u_xx[:, 0] + u_pred[:, 0], name='Residual')
     )
